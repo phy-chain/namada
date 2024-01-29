@@ -79,13 +79,17 @@ fn start_namada_ledger_node(
     Ok(node)
 }
 
-fn start_namada_ledger_node_wait_wasm(
+fn start_namada_ledger_node_and_wait(
     test: &Test,
     idx: Option<u64>,
     timeout_sec: Option<u64>,
+    wait_first_block: bool,
 ) -> Result<NamadaCmd> {
     let mut node = start_namada_ledger_node(test, idx, timeout_sec)?;
     node.exp_regex(r"Starting RPC HTTP server")?;
+    if wait_first_block {
+        node.exp_regex(r"Committed block hash.*, height: [0-9]+")?;
+    }
     Ok(node)
 }
 
@@ -160,13 +164,14 @@ fn test_node_connectivity_and_consensus() -> Result<()> {
 
     // 1. Run 2 genesis validator ledger nodes and 1 non-validator node
     let bg_validator_0 =
-        start_namada_ledger_node_wait_wasm(&test, Some(0), Some(40))?
+        start_namada_ledger_node_and_wait(&test, Some(0), Some(40), false)?
             .background();
     let bg_validator_1 =
-        start_namada_ledger_node_wait_wasm(&test, Some(1), Some(40))?
+        start_namada_ledger_node_and_wait(&test, Some(1), Some(40), false)?
             .background();
     let _bg_non_validator =
-        start_namada_ledger_node_wait_wasm(&test, None, Some(40))?.background();
+        start_namada_ledger_node_and_wait(&test, None, Some(40), false)?
+            .background();
 
     // 2. Cross over epoch to check for consensus with multiple nodes
     let validator_one_rpc = get_actor_rpc(&test, Who::Validator(0));
@@ -249,7 +254,7 @@ fn test_namada_shuts_down_if_tendermint_dies() -> Result<()> {
 
     // 1. Run the ledger node
     let mut ledger =
-        start_namada_ledger_node_wait_wasm(&test, Some(0), Some(40))?;
+        start_namada_ledger_node_and_wait(&test, Some(0), Some(40), false)?;
 
     // 2. Kill the tendermint node
     sleep(1);
@@ -433,7 +438,7 @@ fn ledger_txs_and_queries() -> Result<()> {
 
     // 1. Run the ledger node
     let _bg_ledger =
-        start_namada_ledger_node_wait_wasm(&test, Some(0), Some(40))?
+        start_namada_ledger_node_and_wait(&test, Some(0), Some(40), false)?
             .background();
 
     // for a custom tx
@@ -713,7 +718,7 @@ fn wrapper_disposable_signer() -> Result<()> {
 
     // 1. Run the ledger node
     let _bg_ledger =
-        start_namada_ledger_node_wait_wasm(&test, Some(0), Some(40))?
+        start_namada_ledger_node_and_wait(&test, Some(0), Some(40), false)?
             .background();
 
     let validator_one_rpc = get_actor_rpc(&test, Who::Validator(0));
@@ -808,7 +813,7 @@ fn invalid_transactions() -> Result<()> {
 
     // 1. Run the ledger node
     let bg_ledger =
-        start_namada_ledger_node_wait_wasm(&test, Some(0), Some(40))?
+        start_namada_ledger_node_and_wait(&test, Some(0), Some(40), false)?
             .background();
 
     // 2. Submit a an invalid transaction (trying to transfer tokens should fail
@@ -947,7 +952,7 @@ fn pos_bonds() -> Result<()> {
 
     // 1. Run the ledger node
     let _bg_validator_0 =
-        start_namada_ledger_node_wait_wasm(&test, Some(0), Some(40))?
+        start_namada_ledger_node_and_wait(&test, Some(0), Some(40), true)?
             .background();
 
     let validator_0_rpc = get_actor_rpc(&test, Who::Validator(0));
@@ -1171,7 +1176,7 @@ fn pos_rewards() -> Result<()> {
 
     // 1. Run 3 genesis validator ledger nodes
     let _bg_validator_0 =
-        start_namada_ledger_node_wait_wasm(&test, Some(0), Some(40))?
+        start_namada_ledger_node_and_wait(&test, Some(0), Some(40), false)?
             .background();
 
     let validator_0_rpc = get_actor_rpc(&test, Who::Validator(0));
@@ -1333,7 +1338,7 @@ fn test_bond_queries() -> Result<()> {
 
     // 1. Run the ledger node
     let _bg_ledger =
-        start_namada_ledger_node_wait_wasm(&test, Some(0), Some(40))?
+        start_namada_ledger_node_and_wait(&test, Some(0), Some(40), false)?
             .background();
 
     let validator_one_rpc = get_actor_rpc(&test, Who::Validator(0));
@@ -1503,9 +1508,9 @@ fn pos_init_validator() -> Result<()> {
 
     // 1. Run a validator and non-validator ledger node
     let mut validator_0 =
-        start_namada_ledger_node_wait_wasm(&test, Some(0), Some(60))?;
+        start_namada_ledger_node_and_wait(&test, Some(0), Some(60), false)?;
     let mut non_validator =
-        start_namada_ledger_node_wait_wasm(&test, None, Some(60))?;
+        start_namada_ledger_node_and_wait(&test, None, Some(60), false)?;
 
     // Wait for a first block
     validator_0.exp_string("Committed block hash")?;
@@ -1699,7 +1704,7 @@ fn ledger_many_txs_in_a_block() -> Result<()> {
 
     // 1. Run the ledger node
     let bg_ledger =
-        start_namada_ledger_node_wait_wasm(&test, Some(0), Some(40))?
+        start_namada_ledger_node_and_wait(&test, Some(0), Some(40), false)?
             .background();
 
     let validator_one_rpc = Arc::new(get_actor_rpc(&test, Who::Validator(0)));
@@ -1790,7 +1795,7 @@ fn proposal_submission() -> Result<()> {
 
     // 1. Run the ledger node
     let bg_ledger =
-        start_namada_ledger_node_wait_wasm(&test, Some(0), Some(40))?
+        start_namada_ledger_node_and_wait(&test, Some(0), Some(40), false)?
             .background();
 
     let validator_0_rpc = get_actor_rpc(&test, Who::Validator(0));
@@ -2111,7 +2116,7 @@ fn pgf_governance_proposal() -> Result<()> {
 
     // Run the ledger node
     let _bg_ledger =
-        start_namada_ledger_node_wait_wasm(&test, Some(0), Some(40))?
+        start_namada_ledger_node_and_wait(&test, Some(0), Some(40), false)?
             .background();
 
     let validator_one_rpc = get_actor_rpc(&test, Who::Validator(0));
@@ -2418,7 +2423,7 @@ fn pgf_steward_change_commissions() -> Result<()> {
 
     // Run the ledger node
     let _bg_ledger =
-        start_namada_ledger_node_wait_wasm(&test, Some(0), Some(40))?
+        start_namada_ledger_node_and_wait(&test, Some(0), Some(40), false)?
             .background();
 
     let validator_one_rpc = get_actor_rpc(&test, Who::Validator(0));
@@ -2516,7 +2521,7 @@ fn proposal_offline() -> Result<()> {
 
     // 1. Run the ledger node
     let _bg_ledger =
-        start_namada_ledger_node_wait_wasm(&test, Some(0), Some(40))?
+        start_namada_ledger_node_and_wait(&test, Some(0), Some(40), false)?
             .background();
 
     let validator_one_rpc = get_actor_rpc(&test, Who::Validator(0));
@@ -2706,10 +2711,10 @@ fn double_signing_gets_slashed() -> Result<()> {
 
     // 1. Run 2 genesis validator ledger nodes
     let _bg_validator_0 =
-        start_namada_ledger_node_wait_wasm(&test, Some(0), Some(40))?
+        start_namada_ledger_node_and_wait(&test, Some(0), Some(40), false)?
             .background();
     let bg_validator_1 =
-        start_namada_ledger_node_wait_wasm(&test, Some(1), Some(40))?
+        start_namada_ledger_node_and_wait(&test, Some(1), Some(40), false)?
             .background();
 
     let mut validator_2 =
@@ -2972,7 +2977,7 @@ fn implicit_account_reveal_pk() -> Result<()> {
 
     // 1. Run the ledger node
     let _bg_ledger =
-        start_namada_ledger_node_wait_wasm(&test, Some(0), Some(40))?
+        start_namada_ledger_node_and_wait(&test, Some(0), Some(40), false)?
             .background();
 
     // 2. Some transactions that need signature authorization:
@@ -3235,11 +3240,11 @@ fn deactivate_and_reactivate_validator() -> Result<()> {
 
     // 1. Run the ledger node
     let _bg_validator_0 =
-        start_namada_ledger_node_wait_wasm(&test, Some(0), Some(40))?
+        start_namada_ledger_node_and_wait(&test, Some(0), Some(40), false)?
             .background();
 
     let _bg_validator_1 =
-        start_namada_ledger_node_wait_wasm(&test, Some(1), Some(40))?
+        start_namada_ledger_node_and_wait(&test, Some(1), Some(40), false)?
             .background();
 
     let validator_1_rpc = get_actor_rpc(&test, Who::Validator(1));
@@ -3360,7 +3365,7 @@ fn change_validator_metadata() -> Result<()> {
 
     // 1. Run the ledger node
     let _bg_ledger =
-        start_namada_ledger_node_wait_wasm(&test, Some(0), Some(40))?
+        start_namada_ledger_node_and_wait(&test, Some(0), Some(40), false)?
             .background();
 
     let validator_0_rpc = get_actor_rpc(&test, Who::Validator(0));
@@ -3498,11 +3503,11 @@ fn test_invalid_validator_txs() -> Result<()> {
 
     // 1. Run the ledger node
     let _bg_validator_0 =
-        start_namada_ledger_node_wait_wasm(&test, Some(0), Some(40))?
+        start_namada_ledger_node_and_wait(&test, Some(0), Some(40), false)?
             .background();
 
     let _bg_validator_1 =
-        start_namada_ledger_node_wait_wasm(&test, Some(1), Some(40))?
+        start_namada_ledger_node_and_wait(&test, Some(1), Some(40), false)?
             .background();
 
     let validator_0_rpc = get_actor_rpc(&test, Who::Validator(0));
@@ -3657,11 +3662,11 @@ fn change_consensus_key() -> Result<()> {
     // 1. Run 2 genesis validator ledger nodes
 
     let bg_validator_0 =
-        start_namada_ledger_node_wait_wasm(&test, Some(0), Some(40))?
+        start_namada_ledger_node_and_wait(&test, Some(0), Some(40), false)?
             .background();
 
     let _bg_validator_1 =
-        start_namada_ledger_node_wait_wasm(&test, Some(1), Some(40))?
+        start_namada_ledger_node_and_wait(&test, Some(1), Some(40), false)?
             .background();
 
     let validator_0_rpc = get_actor_rpc(&test, Who::Validator(0));
@@ -3764,7 +3769,7 @@ fn proposal_change_shielded_reward() -> Result<()> {
 
     // 1. Run the ledger node
     let bg_ledger =
-        start_namada_ledger_node_wait_wasm(&test, Some(0), Some(40))?
+        start_namada_ledger_node_and_wait(&test, Some(0), Some(40), false)?
             .background();
 
     let validator_0_rpc = get_actor_rpc(&test, Who::Validator(0));
