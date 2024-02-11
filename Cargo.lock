@@ -4635,6 +4635,7 @@ name = "namada_shielded_token"
 version = "0.31.4"
 dependencies = [
  "masp_primitives",
+ "namada_controller",
  "namada_core",
  "namada_parameters",
  "namada_state",
