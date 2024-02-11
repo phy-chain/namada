@@ -4546,6 +4546,7 @@ dependencies = [
  "derivative",
  "itertools 0.10.5",
  "namada_account",
+ "namada_controller",
  "namada_core",
  "namada_governance",
  "namada_parameters",
