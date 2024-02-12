@@ -802,7 +802,7 @@ pub mod cmds {
         RunUntil(LedgerRunUntil),
         Reset(LedgerReset),
         DumpDb(LedgerDumpDb),
-        UpdateDB(LedgerUpdateDb),
+        UpdateDB(LedgerUpdateDB),
         RollBack(LedgerRollBack),
     }
 
@@ -839,7 +839,7 @@ pub mod cmds {
                 .subcommand(LedgerRunUntil::def())
                 .subcommand(LedgerReset::def())
                 .subcommand(LedgerDumpDb::def())
-                .subcommand(LedgerUpdateDb::def())
+                .subcommand(LedgerUpdateDB::def())
                 .subcommand(LedgerRollBack::def())
         }
     }

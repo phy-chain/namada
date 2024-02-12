@@ -1,6 +1,5 @@
 extern crate alloc;
 extern crate core;
-extern crate core;
 
 pub use namada_core::{borsh, ibc, tendermint, tendermint_proto, types};
 #[cfg(feature = "tendermint-rpc")]
